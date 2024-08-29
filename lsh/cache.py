@@ -56,6 +56,15 @@ class Cache(object):
             bucket_id = hash(tuple(bucket))
             self.bins[bin_i][bucket_id].add(doc_id)
 
+    def add_query_fingerprint_get_duplicates(self, fingerprint):
+        candidate_duplicates = set()
+        for bin_i, bucket in self.bins_(fingerprint):
+            bucket_id = hash(tuple(bucket))
+            if len(self.bins[bin_i][bucket_id]) >= 1:
+                duplicates = set(itertools.combinations(self.bins[bin_i][bucket_id], r=len(self.bins[bin_i][bucket_id])))
+                candidate_duplicates.update(duplicates)
+        return candidate_duplicates
+
     def filter_candidates(self, candidate_id_pairs, min_jaccard):
         logging.info('Computing Jaccard sim of %d pairs',
                      len(candidate_id_pairs))

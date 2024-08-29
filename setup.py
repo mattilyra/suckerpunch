@@ -23,7 +23,7 @@ except ImportError:
     includes = []
 
 extensions = [Extension("lsh.cMinhash",
-                        ["lsh/cMinhash.pyx", 'lsh/MurmurHash3.cpp'],
+                        ["lsh/cMinhash{}".format(ext), 'lsh/MurmurHash3.cpp'],
                         include_dirs=includes)]
 if USE_CYTHON:
     from Cython.Build import cythonize

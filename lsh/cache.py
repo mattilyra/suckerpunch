@@ -54,7 +54,8 @@ class Cache(object):
         for bin_i, bucket in self.bins_(fingerprint):
             # todo faster hash here? or no hash at all?
             bucket_id = hash(tuple(bucket))
-            self.bins[bin_i][bucket_id].add(doc_id)
+            if len(self.bins[bin_i][bucket_id]) == 0: # Need to think if this step is required or not. In order to prevent duplicates among head queries
+                self.bins[bin_i][bucket_id].add(doc_id)
 
     def add_query_fingerprint_get_duplicates(self, fingerprint):
         candidate_duplicates = set()

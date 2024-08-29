@@ -10,8 +10,8 @@ DESCRIPTION = 'A library for performing shingling and LSH for python.'
 
 MAINTAINER = 'Matti Lyra'
 MAINTAINER_EMAIL = 'matti.lyra@gmail.com'
-URL = 'https://github.com/mattilyra/lsh'
-DOWNLOAD_URL = 'https://github.com/mattilyra/lsh'
+URL = 'https://github.com/arindombora21/LSH'
+DOWNLOAD_URL = 'https://github.com/arindombora21/LSH'
 
 VERSION = '0.3.0'
 

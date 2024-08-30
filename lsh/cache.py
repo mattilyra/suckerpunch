@@ -54,7 +54,46 @@ class Cache(object):
         for bin_i, bucket in self.bins_(fingerprint):
             # todo faster hash here? or no hash at all?
             bucket_id = hash(tuple(bucket))
-            if len(self.bins[bin_i][bucket_id]) == 0: # Need to think if this step is required or not. In order to prevent duplicates among head queries
+            self.bins[bin_i][bucket_id].add(doc_id)
+
+    # Sort Head queries according to order of preference
+    # How to deduplicate among head queries, as they also give variable experience. e.g. refrigerator samsung, samsung refrigerator
+    # Discuss this approach, if at least one duplicate present in any one of the buckets, do not enter the query into the cache
+    # Why? because if this duplicate query would have come as a tail query, it would enter the cache, find one duplicate head query & return it.
+    # Do we want to keep certain thresholds ?
+    # Thresholds in the sense if during insertion in cache process, if it collides with more than 'n' buckets, do not insert into cache.
+    # Consider it as a duplicate
+    # Can we insert all queries into cache instead of head queries, if strict dedup is applied
+    def add_fingerprint_strict_dedup(self, fingerprint, doc_id):
+        self.fingerprints[doc_id] = fingerprint
+        add_to_cache = True
+        for bin_i, bucket in self.bins_(fingerprint):
+            # todo faster hash here? or no hash at all?
+            bucket_id = hash(tuple(bucket))
+            if len(self.bins[bin_i][bucket_id]) >= 1:
+                add_to_cache = False
+                break
+
+        if add_to_cache:
+            for bin_i, bucket in self.bins_(fingerprint):
+                bucket_id = hash(tuple(bucket))
+                self.bins[bin_i][bucket_id].add(doc_id)
+
+    def add_fingerprint_lenient_dedup(self, fingerprint, doc_id):
+        self.fingerprints[doc_id] = fingerprint
+        add_to_cache = 0
+        collision_threshold = 4
+        for bin_i, bucket in self.bins_(fingerprint):
+            # todo faster hash here? or no hash at all?
+            bucket_id = hash(tuple(bucket))
+            if len(self.bins[bin_i][bucket_id]) >= 1:
+                add_to_cache = add_to_cache + 1
+                if add_to_cache >= collision_threshold:
+                    break
+
+        if add_to_cache < collision_threshold:
+            for bin_i, bucket in self.bins_(fingerprint):
+                bucket_id = hash(tuple(bucket))
                 self.bins[bin_i][bucket_id].add(doc_id)
 
     def add_query_fingerprint_get_duplicates(self, fingerprint):

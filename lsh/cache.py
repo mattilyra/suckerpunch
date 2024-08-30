@@ -56,6 +56,61 @@ class Cache(object):
             bucket_id = hash(tuple(bucket))
             self.bins[bin_i][bucket_id].add(doc_id)
 
+    # Give indices to the list of head queries sorted by order of business value in descending order
+    # Doc_Id resembles that index
+    # Do not add a query into cache if it collides with at least 1 bucket. Strict Head query deduplication
+    def add_fingerprint_strict_dedup(self, fingerprint, doc_id):
+        self.fingerprints[doc_id] = fingerprint
+        add_to_cache = True
+        for bin_i, bucket in self.bins_(fingerprint):
+            # todo faster hash here? or no hash at all?
+            bucket_id = hash(tuple(bucket))
+            if len(self.bins[bin_i][bucket_id]) >= 1:
+                add_to_cache = False
+                break
+
+        if add_to_cache:
+            for bin_i, bucket in self.bins_(fingerprint):
+                bucket_id = hash(tuple(bucket))
+                self.bins[bin_i][bucket_id].add(doc_id)
+
+    # Do not add a query into cache if it collides with at least 'n' buckets. Lenient Head query deduplication
+    def add_fingerprint_lenient_dedup(self, fingerprint, doc_id):
+        self.fingerprints[doc_id] = fingerprint
+        add_to_cache = 0
+        collision_threshold = 4
+        for bin_i, bucket in self.bins_(fingerprint):
+            # todo faster hash here? or no hash at all?
+            bucket_id = hash(tuple(bucket))
+            if len(self.bins[bin_i][bucket_id]) >= 1:
+                add_to_cache = add_to_cache + 1
+                if add_to_cache >= collision_threshold:
+                    break
+
+        if add_to_cache < collision_threshold:
+            for bin_i, bucket in self.bins_(fingerprint):
+                bucket_id = hash(tuple(bucket))
+                self.bins[bin_i][bucket_id].add(doc_id)
+
+    # Count Based k-sampling function for duplicate query extraction
+    # Across the 𝐿 different hash tables, we observe that the cached entries with the greatest number of collisions with
+    # the new query are more similar to the query text. This observation allows us to estimate the actual ranking in an
+    # unbiased manner. We count each data point’s frequency of occurrence in the aggregated reservoirs and rank all the
+    # data points based on the frequency.
+    # Here,aggregated reservoir means the union of all such indices of head query which collided with the "query" fired.
+    # Frequency of occurrence = No. of times collided query appears in the same bucket as fired_query across all
+    # the 𝐿 different hash tables
+    # There can be multiple such indices. Decide best query based on business value.
+    def add_query_fingerprint_get_duplicates(self, fingerprint):
+        candidate_duplicates = set()
+        for bin_i, bucket in self.bins_(fingerprint):
+            bucket_id = hash(tuple(bucket))
+            if len(self.bins[bin_i][bucket_id]) >= 1:
+                duplicates = set(
+                    itertools.combinations(self.bins[bin_i][bucket_id], r=len(self.bins[bin_i][bucket_id])))
+                candidate_duplicates.update(duplicates)
+        return candidate_duplicates
+
     def filter_candidates(self, candidate_id_pairs, min_jaccard):
         logging.info('Computing Jaccard sim of %d pairs',
                      len(candidate_id_pairs))
